@@ -1,1 +1,62 @@
-[{"task_id": "test-1", "prompt": "Is this working?"}]
+[
+  {
+    "task_id": "factual_01",
+    "prompt": "What is a transformer model in machine learning?",
+    "category": "factual",
+    "ground_truth": "A transformer is a neural network architecture that uses self-attention mechanisms to process sequential data."
+  },
+  {
+    "task_id": "math_01",
+    "prompt": "Calculate 15% of 340. Show your work.",
+    "category": "math",
+    "ground_truth": "15% of 340 = 0.15 × 340 = 51"
+  },
+  {
+    "task_id": "sentiment_01",
+    "prompt": "Classify the sentiment of this review: 'The product was absolutely amazing and exceeded all my expectations!'",
+    "category": "sentiment",
+    "ground_truth": "positive"
+  },
+  {
+    "task_id": "summarize_01",
+    "prompt": "Summarize in one sentence: RouteZero is an adaptive LLM routing system that intelligently distributes queries between local and remote models based on complexity, achieving cost savings without sacrificing quality.",
+    "category": "summarize",
+    "ground_truth": "RouteZero is an adaptive LLM routing system that intelligently distributes queries between local and remote models based on complexity, achieving cost savings without sacrificing quality."
+  },
+  {
+    "task_id": "ner_01",
+    "prompt": "Extract all person and organization names from: 'John Smith works at Google in New York and his colleague Sarah Johnson is at Microsoft.'",
+    "category": "ner",
+    "ground_truth": "Persons: John Smith, Sarah Johnson. Organizations: Google, Microsoft."
+  },
+  {
+    "task_id": "debug_01",
+    "prompt": "Find the bug in this code:\ndef calculate_average(numbers):\n    total = sum(numbers)\n    count = len(numbers)\n    return total / count\n\nresult = calculate_average([])",
+    "category": "debug",
+    "ground_truth": "The function will raise ZeroDivisionError when given an empty list because count would be 0."
+  },
+  {
+    "task_id": "reasoning_01",
+    "prompt": "If all A are B, and all B are C, then can we conclude that all A are C? Explain step by step.",
+    "category": "reasoning",
+    "ground_truth": "Yes. Step 1: All A are B means every element of A is in B. Step 2: All B are C means every element of B is in C. Step 3: Therefore every element of A is in C, so all A are C."
+  },
+  {
+    "task_id": "codegen_01",
+    "prompt": "Write a Python function that takes a list of numbers and returns the sum of squares of even numbers only.",
+    "category": "codegen",
+    "ground_truth": "def sum_even_squares(numbers):\n    return sum(x**2 for x in numbers if x % 2 == 0)"
+  },
+  {
+    "task_id": "codegen_02",
+    "prompt": "Create a FastAPI endpoint that accepts a GET request with a 'name' query parameter and returns a JSON greeting.",
+    "category": "codegen",
+    "ground_truth": "@app.get('/greet')\ndef greet(name: str = 'World'):\n    return {'message': f'Hello, {name}!'}"
+  },
+  {
+    "task_id": "reasoning_02",
+    "prompt": "A bat and a ball cost $1.10 in total. The bat costs $1.00 more than the ball. How much does the ball cost? Think step by step.",
+    "category": "reasoning",
+    "ground_truth": "Let b = ball cost. Bat costs b + 1.00. Total: b + (b + 1.00) = 1.10. So 2b + 1.00 = 1.10. 2b = 0.10. b = 0.05. The ball costs $0.05."
+  }
+]

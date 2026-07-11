@@ -36,4 +36,6 @@ htmlcov/
 .docker/
 
 # __ Test files _______________________________
-dev_tools/
+dev_tools/model_cache/
+model_cache/
+output/

@@ -2,16 +2,19 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-import os
 from dataclasses import dataclass
-from typing import Protocol, List
+from typing import Protocol
 
+from llama_cpp import Llama
 from openai import AsyncOpenAI
+
 from routezero.config import Settings
+
 
 class LLMClient(Protocol):
     """Protocol for all LLM clients."""
     async def generate(self, prompt: str, **kwargs) -> LLMResponse: ...
+
 
 @dataclass
 class LLMResponse:
@@ -20,65 +23,82 @@ class LLMResponse:
     latency_ms: float
     model_name: str
 
-def get_allowed_models(settings: Settings) -> List[str]:
-    """Helper to parse the ALLOWED_MODELS env var."""
-    raw = os.environ.get("ALLOWED_MODELS", settings.allowed_models)
-    models = [m.strip() for m in raw.split(",") if m.strip()]
-    if not models:
-        # Fallback to a safe guess if env is missing, but this shouldn't happen in production
-        return [settings.fireworks_model_id]
-    return models
 
 class LocalQwenClient:
+    """Client for local Qwen 2.5 1.5B (GGUF, CPU inference via llama.cpp).
+
+    Sized to fit the 4GB RAM / 2 vCPU grading environment. Local inference
+    counts toward accuracy but records zero tokens toward the score.
     """
-    REDIRECTED FOR PRODUCTION: Uses the 'Fast' Fireworks model 
-    instead of local vLLM to save RAM and ensure scores.
-    """
+
     def __init__(self, settings: Settings) -> None:
-        models = get_allowed_models(settings)
-        # USE THE FIRST MODEL (Usually the smallest/cheapest allowed model)
-        self.model = models[0] 
-        self.max_tokens = settings.local_max_tokens
-        self.timeout = settings.local_timeout_s
-        self._client = AsyncOpenAI(
-            base_url=settings.fireworks_base_url, # Use dynamic URL
-            api_key=settings.fireworks_api_key,
+        self.model_path = "./model_cache/local_llm/qwen2.5-1.5b-instruct-q4_k_m.gguf"
+        self.llm = Llama(
+            model_path=self.model_path,
+            n_ctx=2048,
+            n_threads=2,
+            verbose=False,
         )
-    
+
     async def generate(self, prompt: str, **kwargs) -> LLMResponse:
         start = time.monotonic()
-        response = await self._client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=self.max_tokens,
-            timeout=self.timeout,
-            **kwargs,
+
+        # llama_cpp is synchronous; run in a thread so we don't block the
+        # asyncio event loop (other async work, e.g. metrics logging, can
+        # still proceed).
+        loop = asyncio.get_event_loop()
+        output = await loop.run_in_executor(
+            None,
+            lambda: self.llm.create_chat_completion(
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=512,
+            ),
         )
+
         latency_ms = (time.monotonic() - start) * 1000
-        choice = response.choices[0]
-        usage = response.usage
+        logging.debug("RAW LOCAL RESPONSE: %s", output)
+
+        if not output.get("choices"):
+            raise RuntimeError(f"Local model returned no choices. Full response: {output}")
+
+        choice = output["choices"][0]
+        usage = output.get("usage", {})
         return LLMResponse(
-            text=choice.message.content or "",
-            tokens_used=usage.total_tokens if usage else 0,
+            text=choice["message"]["content"] or "",
+            tokens_used=usage.get("total_tokens", 0),
             latency_ms=round(latency_ms, 2),
-            model_name=self.model,
+            model_name="qwen2.5-1.5b-instruct-local",
         )
 
     async def health_check(self) -> bool:
-        return True
+        try:
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(
+                None,
+                lambda: self.llm.create_chat_completion(
+                    messages=[{"role": "user", "content": "ping"}],
+                    max_tokens=1,
+                ),
+            )
+            return True
+        except Exception:
+            return False
+
 
 class FireworksRemoteClient:
-    """Client for Fireworks AI remote API using the 'Strong' model."""
+    """Client for Fireworks AI remote API."""
+
     def __init__(self, settings: Settings) -> None:
-        models = get_allowed_models(settings)
-        # USE THE LAST MODEL (Usually the strongest/largest allowed model)
-        self.model = models[-1] 
+        allowed = [m.strip() for m in settings.allowed_models.split(",") if m.strip()]
+        if not allowed:
+            raise ValueError("ALLOWED_MODELS is empty — cannot select a Fireworks model")
+        self.model = allowed[0]  # simplest choice for now: first listed model
         self.timeout = settings.remote_timeout_s
         self._client = AsyncOpenAI(
-            base_url=settings.fireworks_base_url, # Use dynamic URL
+            base_url=settings.fireworks_base_url,
             api_key=settings.fireworks_api_key,
         )
-    
+
     async def generate(self, prompt: str, **kwargs) -> LLMResponse:
         last_exc = None
         for attempt in range(3):
@@ -91,6 +111,12 @@ class FireworksRemoteClient:
                     **kwargs,
                 )
                 latency_ms = (time.monotonic() - start) * 1000
+
+                if not response.choices:
+                    raise RuntimeError(
+                        f"Remote model returned no choices. Full response: {response}"
+                    )
+
                 choice = response.choices[0]
                 usage = response.usage
                 return LLMResponse(
@@ -103,7 +129,15 @@ class FireworksRemoteClient:
                 last_exc = exc
                 if attempt < 2:
                     await asyncio.sleep(2 ** attempt)
-        raise last_exc
+        raise last_exc  # type: ignore[misc]
 
     async def health_check(self) -> bool:
-        return True
+        try:
+            await self._client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": "ping"}],
+                max_tokens=1,
+            )
+            return True
+        except Exception:
+            return False
