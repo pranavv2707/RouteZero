@@ -17,3 +17,5 @@ input/
 .idea/
 .vscode/
 *.swpmodel_cache/
+model_cache/
+.chromadb/
