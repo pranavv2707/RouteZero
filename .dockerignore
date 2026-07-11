@@ -11,3 +11,7 @@ input/
 .DS_Store
 .idea/
 .vscode/
+.chromadb
+scripts
+docs
+routezero/__pycache__

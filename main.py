@@ -36,15 +36,15 @@ except ImportError:
 # Tune these — this is where real token savings happen.
 # ---------------------------------------------------------------------------
 PROMPT_TEMPLATES = {
-    "factual": ("Answer concisely and accurately in 2-3 sentences.", 150),
-    "math": ("Solve step by step, then give the final numeric answer clearly labeled 'Answer:'.", 200),
-    "sentiment": ("Classify sentiment as positive, negative, or neutral, then give a one-sentence justification.", 80),
-    "summarization": ("Summarize the given text according to the exact length/format constraint specified in the prompt. Do not exceed it.", 120),
+    "factual": ("Answer concisely and accurately in 2-3 sentences.", 450),
+    "math": ("Solve step by step, then give the final numeric answer clearly labeled 'Answer:'.", 500),
+    "sentiment": ("Classify sentiment as positive, negative, or neutral, then give a one-sentence justification.", 350),
+    "summarization": ("Summarize the given text according to the exact length/format constraint specified in the prompt. Do not exceed it.", 450),
     "ner": ("Extract named entities and return ONLY valid JSON in the form "
-            '{"entities": [{"text": "...", "type": "PERSON|ORG|LOCATION|DATE"}]}. No extra text.', 250),
-    "debugging": ("Identify the bug and provide the corrected code only, with a one-line explanation of the fix.", 300),
-    "codegen": ("Write a correct, well-structured function per the spec. Include the function only, no extra commentary.", 300),
-    "logic": ("Solve the constraint puzzle. Show your reasoning briefly, then state the final answer clearly.", 250),
+            '{"entities": [{"text": "...", "type": "PERSON|ORG|LOCATION|DATE"}]}. No extra text.', 550),
+    "debugging": ("Identify the bug and provide the corrected code only, with a one-line explanation of the fix.", 800),
+    "codegen": ("Write a correct, well-structured function per the spec. Include the function only, no extra commentary.", 900),
+    "logic": ("Solve the constraint puzzle. Show your reasoning briefly, then state the final answer clearly.", 800),
 }
 
 # ---------------------------------------------------------------------------
